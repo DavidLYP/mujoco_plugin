@@ -20,12 +20,13 @@ FQuat CalculateWorldRotation(const FQuat &BaseRotation, const FQuat &RelativeRot
 
 	return RelativeRotation * BaseRotation;
 }
+
+// 抽取模型信息
 ModelInfo ExtractModelInfo(const mjModel *m)
 {
-
 	ModelInfo modelInfo;
 
-	// Extract body information
+	// 抽取 MuJoCo 中的 body 信息
 	for (int i = 0; i < m->nbody; ++i)
 	{
 		BodyInfo bodyInfo;
@@ -37,7 +38,7 @@ ModelInfo ExtractModelInfo(const mjModel *m)
 		modelInfo.bodies.push_back(bodyInfo);
 	}
 
-	// Extract geom information
+	// 抽取几何体(geom)信息
 	for (int i = 0; i < m->ngeom; ++i)
 	{
 		GeomInfo geomInfo;
@@ -48,7 +49,7 @@ ModelInfo ExtractModelInfo(const mjModel *m)
 		std::copy(m->geom_pos + 3 * i, m->geom_pos + 3 * (i + 1), geomInfo.pos);
 		std::copy(m->geom_quat + 4 * i, m->geom_quat + 4 * (i + 1), geomInfo.quat);
 		geomInfo.quat2 = FQuat(geomInfo.quat[1], geomInfo.quat[2], geomInfo.quat[3], geomInfo.quat[0]);
-		// Check if this geom has material or texture information
+		// 检查此几何体是否具有材质或纹理信息
 		if (m->geom_matid[i] >= 0)
 		{
 			int matid = m->geom_matid[i];
@@ -58,11 +59,10 @@ ModelInfo ExtractModelInfo(const mjModel *m)
 				m->mat_rgba[matid * 4 + 2],
 				m->mat_rgba[matid * 4 + 3]);
 	
-	      
 			if (m->mat_texid[matid] >= 0)
 			{
 				int texid = m->mat_texid[matid];
-				// Texture exists, but we'll use geom color as base
+				// 纹理是存在的，但我们将使用几何体颜色作为基础色。
 				geomInfo.color = FLinearColor(
 					m->geom_rgba[i * 4 + 0],
 					m->geom_rgba[i * 4 + 1],
@@ -73,7 +73,7 @@ ModelInfo ExtractModelInfo(const mjModel *m)
 			}
 			
 		}
-		// Otherwise use geom-specific RGBA color
+		// 否则，使用几何体特定的 RGBA 颜色
 		else
 		{
 			geomInfo.color = FLinearColor(
@@ -83,11 +83,10 @@ ModelInfo ExtractModelInfo(const mjModel *m)
 				m->geom_rgba[i * 4 + 3]);
 		}
 		
-		// Adjust size to be used as scale
-		//  assume all primitive meshes Have 1 meter size -> 100 cm in UE
+		// 调整尺寸以用作比例尺
+		// 假设所有网格均为原始网格。1 米 大小 -> 在 UE 中为 100 厘米。
 		switch (geomInfo.type)
 		{
-
 		case mjGEOM_CYLINDER:
 			geomInfo.size[0] *= 2;
 			geomInfo.size[2] = geomInfo.size[1] * 2;
@@ -250,7 +249,7 @@ void AMuJoCoSimulation::BeginPlay()
 	LoadModel(XmlSourcePath);  // 解析 mujoco 的 xml 模型
 	if (mModel)
 	{
-		_info = ExtractModelInfo(mModel);
+		_info = ExtractModelInfo(mModel);  // 模型解析
 		ConvertMuJoCoModelToProceduralMeshes(mModel, this);
 		GenerateMeshes(_info);
 	}
@@ -335,8 +334,10 @@ void AMuJoCoSimulation::SimulateMuJoCo(float DeltaTime)
 	UpdateSimulationView(_info);
 }
 
+// 从 XML 文件加载 MuJoCo 模型
 bool AMuJoCoSimulation::LoadModel(FString Xml)
 {
+	// 相对于 Content 的路径 + 编辑器中配置的 XML Source Path
 	FString FullPath = FPaths::Combine(FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir()), Xml);
 	if (!FPaths::FileExists(FullPath))
 	{
