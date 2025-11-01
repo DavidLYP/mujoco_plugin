@@ -126,49 +126,55 @@ ModelInfo ExtractModelInfo(const mjModel *m)
 
 	return modelInfo;
 }
+
+// 将提取的模型信息转换为Unreal Engine中的实际场景组件，建立完整的层级化场景图，
+// 实现物理模型到可视化场景的映射
 void AMuJoCoSimulation::GenerateMeshes(ModelInfo &modelInfo)
 {
-
+	// 清空现有映射表
 	BodyMap.Empty();
 	GeomMap1.Empty();
 
-	// Generate body componenets
+	// 生成刚体(body)组件
 	int BodyId = 0;
 	for (const BodyInfo &bodyInfo : modelInfo.bodies)
 	{
-
+		// 场景组件(USceneComponent<-UActorComponent<-UObject)是所有具有空间变换（位置、旋转、缩放）的组件基类
+		// 它为 组件的三维空间定位与层级管理 提供支持，是 场景树系统的核心
 		USceneComponent *sceneComponent = NewObject<USceneComponent>(this, FName(*(FString(bodyInfo.name.c_str()) + *FString::Printf(TEXT("_Body%d"), BodyId))));
 
-		BodyMap.Add(BodyId++, sceneComponent);
-		sceneComponent->RegisterComponent();
+		BodyMap.Add(BodyId++, sceneComponent);  // 将 场景组件 添加到 刚体映射表 中
+		sceneComponent->RegisterComponent();    // 将 场景组件 注册到引擎
 		sceneComponent->SetRelativeLocation(FVector(bodyInfo.pos[0] * 100, bodyInfo.pos[1] * 100, bodyInfo.pos[2] * 100));
-		sceneComponent->SetRelativeRotation(bodyInfo.quat2);
-		if (bodyInfo.parent_id == 0)
+		sceneComponent->SetRelativeRotation(bodyInfo.quat2);  // 使用转换后的四元数
+		if (bodyInfo.parent_id == 0)  // MuJoCo中0表示世界根：场景组件附着在根组件下
 			sceneComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-		else
+		else  // 子刚体(body)的处理来进行层级维护
 		{
-			USceneComponent *parentComponent = BodyMap[bodyInfo.parent_id];
-			sceneComponent->AttachToComponent(parentComponent, FAttachmentTransformRules::KeepRelativeTransform);
+			USceneComponent *parentComponent = BodyMap[bodyInfo.parent_id];  // 通过刚体映射表快速查找父类
+			sceneComponent->AttachToComponent(parentComponent, FAttachmentTransformRules::KeepRelativeTransform);  // 将当前的 场景组件 附着在父组件下
 		}
 	}
 
-	// Generate geom meshes
+	// 生成几何体(geom)网格组件
 	int GeomId = 0;
 	for (GeomInfo &geomInfo : modelInfo.geoms)
 	{
-		// Create a new mesh component
+		// 创建新的网格组件
 		UStaticMeshComponent *staticMeshComponent = NewObject<UStaticMeshComponent>(this);//, FName(*(FString(geomInfo.name.c_str()) + *FString::Printf(TEXT("_Geom%d"), BodyId))));
 		staticMeshComponent->RegisterComponent();
-		geomInfo.posAdjust[2] = geomInfo.size[2] * -50;
+		geomInfo.posAdjust[2] = geomInfo.size[2] * -50;  // Z 轴偏移调整
 		staticMeshComponent->SetRelativeLocation(FVector(geomInfo.pos[0] * 100, geomInfo.pos[1] * 100, geomInfo.pos[2] * 100)); //+geomInfo.posAdjust[2]
 		staticMeshComponent->SetRelativeRotation(geomInfo.quat2);
 		staticMeshComponent->AttachToComponent(this->BodyMap[geomInfo.body_id], FAttachmentTransformRules::KeepRelativeTransform);
 		;
-		// Get mesh for this geometry
+		// 获得该几何体的网格
+		// MeshAssets映射表：预配置的几何体类型到StaticMesh的映射
 		auto *mesh = MeshAssets.Find(geomInfo.type) ? MeshAssets[geomInfo.type] : nullptr;
-		// Generate Procedural Mesh if type = mesh
+		// 如果 type = mesh 生成程序化网格
 		if (!mesh)
 		{
+			// 特殊网格处理（mjGEOM_MESH）
 			if (geomInfo.type == mjGEOM_MESH && mModel->geom_dataid[GeomId] != -1)
 			{
 				int meshId = mModel->geom_dataid[GeomId];
@@ -197,11 +203,11 @@ void AMuJoCoSimulation::GenerateMeshes(ModelInfo &modelInfo)
 				mesh = defaultMesh;
 		}
 
-		staticMeshComponent->SetStaticMesh(mesh);
-		SetMeshColor(staticMeshComponent, geomInfo.color);
-		staticMeshComponent->SetSimulatePhysics(false);
-		staticMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		staticMeshComponent->SetWorldScale3D(FVector(geomInfo.size[0], geomInfo.size[1], geomInfo.size[2]));
+		staticMeshComponent->SetStaticMesh(mesh);  // 设置网格
+		SetMeshColor(staticMeshComponent, geomInfo.color);  // 设置颜色
+		staticMeshComponent->SetSimulatePhysics(false);  // 禁用物理模拟
+		staticMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);  // 禁用碰撞
+		staticMeshComponent->SetWorldScale3D(FVector(geomInfo.size[0], geomInfo.size[1], geomInfo.size[2]));  // 缩放设置
 
 		this->GeomMap1.Add(GeomId++, staticMeshComponent);
 	}
@@ -255,9 +261,9 @@ void AMuJoCoSimulation::BeginPlay()
 	LoadModel(XmlSourcePath);  // 解析 mujoco 的 xml 模型
 	if (mModel)
 	{
-		_info = ExtractModelInfo(mModel);  // 模型解析
-		ConvertMuJoCoModelToProceduralMeshes(mModel, this); // 将MuJoCo模型中的网格数据转换为Engine的程序化网格组件
-		GenerateMeshes(_info);
+		_info = ExtractModelInfo(mModel);  // 处理基本几何体（球体、立方体等）
+		ConvertMuJoCoModelToProceduralMeshes(mModel, this); // 处理复杂网格几何体：将MuJoCo模型中的网格数据转换为Engine的程序化网格组件
+		GenerateMeshes(_info);  // 将提取的模型信息转换为引擎中的实际场景组件
 	}
 }
 
