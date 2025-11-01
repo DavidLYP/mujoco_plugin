@@ -24,42 +24,48 @@ FQuat CalculateWorldRotation(const FQuat &BaseRotation, const FQuat &RelativeRot
 // 抽取模型信息
 ModelInfo ExtractModelInfo(const mjModel *m)
 {
-	ModelInfo modelInfo;
+	ModelInfo modelInfo;  // 返回的模型信息对象
 
-	// 抽取 MuJoCo 中的 body 信息
+	// 抽取 MuJoCo 模型中的刚体(body)信息
 	for (int i = 0; i < m->nbody; ++i)
 	{
 		BodyInfo bodyInfo;
-		bodyInfo.name = std::string(m->names + m->name_bodyadr[i]);
-		std::copy(m->body_pos + 3 * i, m->body_pos + 3 * (i + 1), bodyInfo.pos);
+		// 读取名称
+		bodyInfo.name = std::string(m->names + m->name_bodyadr[i]);  // 名称字符串池的指针 + 第i个刚体名称在字符串池中的偏移量
+		// 复制位置数据
+		// m->body_pose: [x0,y0,z0, x1,y1,z2, ...]
+		// 第i个body：从索引 3*i 到 3*(i+1)
+		std::copy(m->body_pos + 3 * i, m->body_pos + 3 * (i + 1), bodyInfo.pos);  
+		// 复制四元数数据
 		std::copy(m->body_quat + 4 * i, m->body_quat + 4 * (i + 1), bodyInfo.quat);
-		bodyInfo.parent_id = m->body_parentid[i];
+		bodyInfo.parent_id = m->body_parentid[i];  // 记录父级关系
+		// 调整四元数构造的顺序：MuJoCo格式为 [w,x,y,z] -> 引擎格式：FQuat(x,y,z,w)
 		bodyInfo.quat2 = FQuat(bodyInfo.quat[1], bodyInfo.quat[2], bodyInfo.quat[3], bodyInfo.quat[0]);
 		modelInfo.bodies.push_back(bodyInfo);
 	}
 
-	// 抽取几何体(geom)信息
+	// 抽取 MuJoCo 模型中的几何体(geom)信息
 	for (int i = 0; i < m->ngeom; ++i)
 	{
 		GeomInfo geomInfo;
 		geomInfo.name = std::string(m->names + m->name_geomadr[i]);
-		geomInfo.body_id = m->geom_bodyid[i];
-		geomInfo.type = m->geom_type[i];
+		geomInfo.body_id = m->geom_bodyid[i];  // 所属刚体body的 ID
+		geomInfo.type = m->geom_type[i];  // 几何体类型枚举
 		std::copy(m->geom_size + 3 * i, m->geom_size + 3 * (i + 1), geomInfo.size);
 		std::copy(m->geom_pos + 3 * i, m->geom_pos + 3 * (i + 1), geomInfo.pos);
 		std::copy(m->geom_quat + 4 * i, m->geom_quat + 4 * (i + 1), geomInfo.quat);
 		geomInfo.quat2 = FQuat(geomInfo.quat[1], geomInfo.quat[2], geomInfo.quat[3], geomInfo.quat[0]);
 		// 检查此几何体是否具有材质或纹理信息
-		if (m->geom_matid[i] >= 0)
+		if (m->geom_matid[i] >= 0)  // 有材质的情况
 		{
 			int matid = m->geom_matid[i];
 			geomInfo.color = FLinearColor(
-				m->mat_rgba[matid * 4 + 0],
-				m->mat_rgba[matid * 4 + 1],
-				m->mat_rgba[matid * 4 + 2],
-				m->mat_rgba[matid * 4 + 3]);
+				m->mat_rgba[matid * 4 + 0],  // R 颜色分量
+				m->mat_rgba[matid * 4 + 1],  // G
+				m->mat_rgba[matid * 4 + 2],  // B
+				m->mat_rgba[matid * 4 + 3]); // A
 	
-			if (m->mat_texid[matid] >= 0)
+			if (m->mat_texid[matid] >= 0)  // 存在纹理则进行处理
 			{
 				int texid = m->mat_texid[matid];
 				// 纹理是存在的，但我们将使用几何体颜色作为基础色。
@@ -68,7 +74,6 @@ ModelInfo ExtractModelInfo(const mjModel *m)
 					m->geom_rgba[i * 4 + 1],
 					m->geom_rgba[i * 4 + 2],
 					m->geom_rgba[i * 4 + 3]);
-		
 				//	geomInfo.texId = texid;
 			}
 			
@@ -83,32 +88,33 @@ ModelInfo ExtractModelInfo(const mjModel *m)
 				m->geom_rgba[i * 4 + 3]);
 		}
 		
-		// 调整尺寸以用作比例尺
-		// 假设所有网格均为原始网格。1 米 大小 -> 在 UE 中为 100 厘米。
+		// 调整尺寸以用作比例尺（不同几何体类型需要不同的尺寸转换策略，以适应引擎的表示方式）
+		// 假设所有网格均为原始网格。
+		// 转换坐标系和单位（右手系->左手系；米->厘米）
+		// 1 米 大小 -> 在 UE 中为 100 厘米。
 		switch (geomInfo.type)
 		{
-		case mjGEOM_CYLINDER:
-			geomInfo.size[0] *= 2;
-			geomInfo.size[2] = geomInfo.size[1] * 2;
+		case mjGEOM_CYLINDER:  // 圆柱体
+			geomInfo.size[0] *= 2;  // 半径 -> 直径
+			geomInfo.size[2] = geomInfo.size[1] * 2;  // 高度调整
 			geomInfo.size[1] = geomInfo.size[0];
 			break;
-		case mjGEOM_CAPSULE:
-
-			geomInfo.size[2] = geomInfo.size[1] + geomInfo.size[0];
+		case mjGEOM_CAPSULE:  // 胶囊体
+			geomInfo.size[2] = geomInfo.size[1] + geomInfo.size[0];  // 高度调整
 			geomInfo.size[0] *= 2;
 			geomInfo.size[1] = geomInfo.size[0];
 			break;
-		case mjGEOM_SPHERE:
+		case mjGEOM_SPHERE:  // 球体
 			geomInfo.size[0] *= 2;
 			geomInfo.size[1] = geomInfo.size[0];
 			geomInfo.size[2] = geomInfo.size[0];
 			break;
-		case mjGEOM_BOX:
+		case mjGEOM_BOX:  // 长方体
 			geomInfo.size[0] *= 2;
 			geomInfo.size[1] *= 2;
 			geomInfo.size[2] *= 2;
 			break;
-		case mjGEOM_ELLIPSOID:
+		case mjGEOM_ELLIPSOID:  // 椭圆体
 			geomInfo.size[0] *= 2;
 			geomInfo.size[1] *= 2;
 			geomInfo.size[2] *= 2;
@@ -250,7 +256,7 @@ void AMuJoCoSimulation::BeginPlay()
 	if (mModel)
 	{
 		_info = ExtractModelInfo(mModel);  // 模型解析
-		ConvertMuJoCoModelToProceduralMeshes(mModel, this);
+		ConvertMuJoCoModelToProceduralMeshes(mModel, this); // 将MuJoCo模型中的网格数据转换为Engine的程序化网格组件
 		GenerateMeshes(_info);
 	}
 }
@@ -439,53 +445,56 @@ void AMuJoCoSimulation::LogInfo()
 	}
 }
 
+// 将MuJoCo模型中的网格数据转换为Engine的程序化网格组件，
+// 专门处理复杂的自定义网格几何体（mjGEOM_MESH类型）
 void AMuJoCoSimulation::ConvertMuJoCoModelToProceduralMeshes(const mjModel *mjModel, UObject *Outer)
 {
-
+	// 输入模型不能为空、输出对象Out必须有效（用于组件创建）、模型中至少包含一个网格
 	if (!mjModel || !Outer || mjModel->nmesh == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Invalid input parameters or no meshes in model"));
 		return;
 	}
 
-	// Iterate through all meshes in the MuJoCo model
+	// 遍历 MuJoCo 模型中的所有网格
 	for (int mesh_id = 0; mesh_id < mjModel->nmesh; mesh_id++)
 	{
-		// Extract mesh data from MuJoCo
-		const int vert_start = mjModel->mesh_vertadr[mesh_id];
-		const int nvert = mjModel->mesh_vertnum[mesh_id];
-		const float *mj_vertices = &mjModel->mesh_vert[vert_start * 3];
+		// 从 MuJoCo 中抽取网格数据
+		const int vert_start = mjModel->mesh_vertadr[mesh_id];  // 顶点起始索引
+		const int nvert = mjModel->mesh_vertnum[mesh_id];  // 顶点数量
+		const float *mj_vertices = &mjModel->mesh_vert[vert_start * 3];  // 顶点数组指针(每个顶点占用3个float)
 
-		const int face_start = mjModel->mesh_faceadr[mesh_id];
-		const int nface = mjModel->mesh_facenum[mesh_id];
-		const int *mj_faces = &mjModel->mesh_face[face_start * 3];
+		// 面片数据提取
+		const int face_start = mjModel->mesh_faceadr[mesh_id];  // 面片起始索引
+		const int nface = mjModel->mesh_facenum[mesh_id];  // 面片数量
+		const int *mj_faces = &mjModel->mesh_face[face_start * 3];  // 面片数组指针
 
-		// Skip empty meshes
+		// 跳过空网格
 		if (nvert == 0 || nface == 0)
 			continue;
 
-		// Convert vertices to Unreal coordinates
+		// 将顶点转换为引擎坐标
 		TArray<FVector> UnrealVertices;
 		for (int i = 0; i < nvert; i++)
 		{
 			const float *v = &mj_vertices[i * 3];
 			UnrealVertices.Add(FVector(
-				v[0] * 100.0f,	// X: meters to cm
-				-v[1] * 100.0f, // Y: flip axis for left-handed
-				v[2] * 100.0f	// Z: meters to cm
+				v[0] * 100.0f,	// X: 米 -> 厘米，保持朝向
+				-v[1] * 100.0f, // Y: 翻转坐标轴，右手系->左手系
+				v[2] * 100.0f	// Z: 米 -> 厘米
 				));
 		}
 
-		// Convert faces to Unreal winding order (CW instead of MuJoCo's CCW)
+		// 将面片转换为引擎的缠绕顺序（顺时针而不是 MuJoCo 的逆时针）
 		TArray<int32> UnrealTriangles;
 		for (int i = 0; i < nface; i++)
 		{
-			UnrealTriangles.Add(mj_faces[i * 3 + 0]);
-			UnrealTriangles.Add(mj_faces[i * 3 + 2]); // Swap order
+			UnrealTriangles.Add(mj_faces[i * 3 + 0]);  // 顶点 0 保持不变
+			UnrealTriangles.Add(mj_faces[i * 3 + 2]); // 顶点 2 和顶点 1 交换
 			UnrealTriangles.Add(mj_faces[i * 3 + 1]);
 		}
 
-		// Create procedural mesh component
+		// 创建并注册 程序化网格组件
 		UProceduralMeshComponent *ProcMesh = NewObject<UProceduralMeshComponent>(Outer);
 		ProcMesh->RegisterComponent();
 
@@ -501,23 +510,25 @@ void AMuJoCoSimulation::ConvertMuJoCoModelToProceduralMeshes(const mjModel *mjMo
 			uv = FVector2D(0.5f, 0.5f); // Simple default
 		}
 
+		// 自动法线切线计算
+		// 计算原理: 基于顶点位置和UV坐标，自动生成平滑的法线和切线向量
 		UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
-			UnrealVertices,
-			UnrealTriangles,
-			UVs,
-			Normals,
-			Tangents);
+			UnrealVertices,   // 顶点位置
+			UnrealTriangles,  // 三角形索引
+			UVs,              // UV 坐标
+			Normals,          // 输出：法线
+			Tangents);        // 输出：切线
 
-		// Create mesh section
+		// 创建网格分段
 		ProcMesh->CreateMeshSection(
-			0,
-			UnrealVertices,
-			UnrealTriangles,
-			Normals,
-			UVs,
-			TArray<FColor>(), // Vertex colors
-			Tangents,
-			true // Enable collision
+			0,                 // 网格分段的 ID
+			UnrealVertices,    // 顶点数组
+			UnrealTriangles,   // 三角形索引
+			Normals,           // 法线数组
+			UVs,               // UV 坐标数组
+			TArray<FColor>(),  // 顶点颜色（空）
+			Tangents,          // 切线数组
+			true               // 启用碰撞
 		);
 
 		ProcMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -525,7 +536,7 @@ void AMuJoCoSimulation::ConvertMuJoCoModelToProceduralMeshes(const mjModel *mjMo
 		// Add to output array
 
 		ProceduralMeshes.Add(ProcMesh);
-		ProcMesh->SetVisibility(false);
+		ProcMesh->SetVisibility(true);  // 初始不可见
 	}
 
 	return;

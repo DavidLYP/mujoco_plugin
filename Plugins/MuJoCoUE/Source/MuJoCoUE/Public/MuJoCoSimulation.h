@@ -18,8 +18,8 @@
  * @property std::string name - 刚体名称。
  * @property int parent_id - 父刚体的 ID
  * @property mjtNum[3] pos - 身体位置的三维向量。
- * @property mjtNum[4] quat - MuJoCo 格式中刚体的四元数方向。
- * @property FQuat quat2 - 刚体方向以引擎的四元数表示。
+ * @property mjtNum[4] quat - MuJoCo 格式中刚体的四元数朝向。
+ * @property FQuat quat2 - 刚体朝向以引擎的四元数表示。
  */
 struct BodyInfo
 {
@@ -32,38 +32,37 @@ struct BodyInfo
 
 /**
  * @struct GeomInfo
- * @brief Contains information about a geometry extracted form the MuJoCo Model and Data.
+ * @brief 包含从 MuJoCo 模型和数据中提取的几何信息。
  *
- * This structure stores various properties of a geometry object such as its name,
- * body ID, type, size, position, orientation, and color. It provides a way to manage
- * and adjust geometries within the MuJoCo simulation environment.
+ * 该结构存储几何体对象的各种属性，例如名称、刚体 ID、类型、大小、位置、朝向和颜色。
+ * 它提供了一种在 MuJoCo 仿真环境中管理和调整几何体的方法。
  *
  * @var std::string name
- * The name identifier of the geometry.
+ * 几何体的名称标识符。
  *
  * @var int body_id
- * The ID of the body to which this geometry is attached.
+ * 该几何体所附着的刚体的 ID。
  *
  * @var int type
- * The type of the geometry (e.g., box, sphere, etc.).
+ * 几何体的类型（例如，长方体、球体等）。
  *
  * @var mjtNum size[3]
- * The dimensions of the geometry along each axis.
+ * 沿每个轴的几何体维度。
  *
  * @var mjtNum pos[3]
  * The position of the geometry in 3D space.
  *
  * @var mjtNum posAdjust[3]
- * Additional position adjustment values, initialized to zero.
+ * 附加位置调整值，初始值为零。
  *
  * @var mjtNum quat[4]
- * Quaternion representing the orientation of the geometry in MuJoCo format.
+ * 以 MuJoCo 格式表示几何体朝向的四元数。
  *
  * @var FQuat quat2
- * Quaternion representing the orientation in Unreal Engine format.
+ * 引擎格式的四元数，表示朝向。
  *
  * @var FLinearColor color
- * The color of the geometry in Unreal Engine format.
+ * 引擎格式中几何体的颜色。
  */
 struct GeomInfo
 {
