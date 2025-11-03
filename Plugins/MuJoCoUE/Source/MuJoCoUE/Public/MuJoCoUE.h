@@ -11,7 +11,7 @@ class FMuJoCoUEModule : public IModuleInterface
 	void *DLLHandle;
 
 public:
-	/** IModuleInterface implementation */
+	/** IModuleInterface 实现 */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 };

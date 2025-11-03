@@ -11,13 +11,11 @@
 
 FVector CalculateWorldPosition(const FVector &BaseLocation, const FQuat &BaseRotation, const FVector &RelativeLocation)
 {
-
 	return BaseLocation + BaseRotation.RotateVector(RelativeLocation);
 }
 
 FQuat CalculateWorldRotation(const FQuat &BaseRotation, const FQuat &RelativeRotation)
 {
-
 	return RelativeRotation * BaseRotation;
 }
 
@@ -76,7 +74,6 @@ ModelInfo ExtractModelInfo(const mjModel *m)
 					m->geom_rgba[i * 4 + 3]);
 				//	geomInfo.texId = texid;
 			}
-			
 		}
 		// 否则，使用几何体特定的 RGBA 颜色
 		else
@@ -148,7 +145,11 @@ void AMuJoCoSimulation::GenerateMeshes(ModelInfo &modelInfo)
 		sceneComponent->SetRelativeLocation(FVector(bodyInfo.pos[0] * 100, bodyInfo.pos[1] * 100, bodyInfo.pos[2] * 100));
 		sceneComponent->SetRelativeRotation(bodyInfo.quat2);  // 使用转换后的四元数
 		if (bodyInfo.parent_id == 0)  // MuJoCo中0表示世界根：场景组件附着在根组件下
+		{
+			// 把场景组件提升为RootComponent，否则创建出来的场景组件永远在(0,0,0)点，即使Actor点位置动态改变场景组件绝对位置也不随Actor改变
 			sceneComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+			sceneComponent->SetHiddenInGame(false, true);
+		}
 		else  // 子刚体(body)的处理来进行层级维护
 		{
 			USceneComponent *parentComponent = BodyMap[bodyInfo.parent_id];  // 通过刚体映射表快速查找父类
@@ -215,21 +216,20 @@ void AMuJoCoSimulation::GenerateMeshes(ModelInfo &modelInfo)
 
 void AMuJoCoSimulation::ExtractCurrentState(ModelInfo &info)
 {
-
 	for (int i = 0; i < mModel->nbody; ++i)
 	{
-		// Get positional data from global coordinates (xpos and xquat)
+		// 从全局坐标（xpos 和 xquat）获取位置数据
 		BodyInfo bodyInfo;
 		std::copy(mData->xpos + 3 * i, mData->xpos + 3 * (i + 1), info.bodies[i].pos);
 		std::copy(mData->xquat + 4 * i, mData->xquat + 4 * (i + 1), info.bodies[i].quat);
 		info.bodies[i].quat2 = FQuat(info.bodies[i].quat[1], info.bodies[i].quat[2], info.bodies[i].quat[3], info.bodies[i].quat[0]);
 	}
 
-	// Update geom states
+	// 更新几何体状态
 	for (int i = 0; i < mModel->ngeom; ++i)
 	{   GeomInfo& geomInfo=info.geoms[i];
 		std::copy(mData->geom_xpos + 3 * i, mData->geom_xpos + 3 * (i + 1), info.geoms[i].pos);
-		// Convert rotation matrix to quaternion
+		// 将旋转矩阵转换为四元数
 		const mjtNum *mat = mData->geom_xmat + 9 * i;
 		mjtNum quat[4];
 		mju_mat2Quat(quat, mat);
@@ -240,7 +240,8 @@ void AMuJoCoSimulation::ExtractCurrentState(ModelInfo &info)
 
 AMuJoCoSimulation::AMuJoCoSimulation()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// 设置此 Actor 每帧调用 Tick() 函数。
+	// 如果不需要此功能，可以将其关闭以提高性能。
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bCanEverTick = true;
 	if (HasAnyFlags(RF_ClassDefaultObject))
@@ -252,7 +253,7 @@ AMuJoCoSimulation::AMuJoCoSimulation()
 	bSimulationRunning = false;
 }
 
-// 场景开始
+// 开始仿真
 void AMuJoCoSimulation::BeginPlay()
 {
 	Super::BeginPlay();
@@ -265,11 +266,11 @@ void AMuJoCoSimulation::BeginPlay()
 		ConvertMuJoCoModelToProceduralMeshes(mModel, this); // 处理复杂网格几何体：将MuJoCo模型中的网格数据转换为Engine的程序化网格组件
 		GenerateMeshes(_info);  // 将提取的模型信息转换为引擎中的实际场景组件
 	}
+	UE_LOG(LogTemp, Warning, TEXT("Mujoco begin play."));
 }
 
 void AMuJoCoSimulation::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-
 	if (mData)
 		mj_deleteData(mData);
 
@@ -280,6 +281,7 @@ void AMuJoCoSimulation::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
+
 void AMuJoCoSimulation::UpdateSimulationView(const ModelInfo &Info)
 {
 	FVector BaseLocation = BodyMap[0]->GetComponentLocation();
@@ -288,7 +290,6 @@ void AMuJoCoSimulation::UpdateSimulationView(const ModelInfo &Info)
 	int BodyId = 0;
 	for (const BodyInfo &bodyInfo : Info.bodies)
 	{
-
 		USceneComponent *sceneComponent = BodyMap[BodyId];
 		if (!sceneComponent)
 			continue;
@@ -308,7 +309,6 @@ void AMuJoCoSimulation::UpdateSimulationView(const ModelInfo &Info)
 	int GeomId = 0;
 	for (const GeomInfo &geomInfo : Info.geoms)
 	{
-
 		UStaticMeshComponent *staticMeshComponent = GeomMap1[GeomId];
 		if (!staticMeshComponent)
 			continue;
@@ -346,6 +346,7 @@ void AMuJoCoSimulation::SimulateMuJoCo(float DeltaTime)
 	UpdateSimulationView(_info);
 }
 
+
 // 从 XML 文件加载 MuJoCo 模型
 bool AMuJoCoSimulation::LoadModel(FString Xml)
 {
@@ -371,7 +372,7 @@ bool AMuJoCoSimulation::LoadModel(FString Xml)
 	return true;
 }
 
-// Called every frame
+// 每一帧都被调用
 void AMuJoCoSimulation::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -379,21 +380,26 @@ void AMuJoCoSimulation::Tick(float DeltaTime)
 		SimulateMuJoCo(DeltaTime);
 }
 
+
 void AMuJoCoSimulation::SetControl(int Id, float Value)
 {
 	if (!mData || !mModel || mModel->nu <= Id)
 		return;
 	mData->ctrl[Id] = Value;
 }
+
+
 void AMuJoCoSimulation::StartSimulation()
 {
 	bSimulationRunning = true;
 }
 
+
 void AMuJoCoSimulation::PauseSimulation()
 {
 	bSimulationRunning = false;
 }
+
 
 void AMuJoCoSimulation::ResetSimulation()
 {
@@ -416,7 +422,7 @@ void AMuJoCoSimulation::StepSimulation()
 
 void AMuJoCoSimulation::LogInfo()
 {
-	// Log body information
+	// 记录刚体(body)信息
 	int BodyId = 0;
 	for (const auto &bodyInfo : _info.bodies)
 	{
@@ -433,7 +439,7 @@ void AMuJoCoSimulation::LogInfo()
 		BodyId++;
 	}
 
-	// Log geom information
+	// 记录几何体信息
 	int GeomId = 0;
 	for (const auto &geomInfo : _info.geoms)
 	{
@@ -552,7 +558,7 @@ void AMuJoCoSimulation::SetMeshColor(UStaticMeshComponent *StaticMeshComponent, 
 {
 	if (!StaticMeshComponent)
 		return;
-	// TODo: Add material to the mesh still issues
+	// TODO: 向网格添加材质仍然存在问题
 	//	static UMaterialInterface* Material= FindObject<UMaterialInterface>(ANY_PACKAGE,TEXT("M_BaseColor"));         ///Game/MuJoCo/M_BaseColor.
 	//	if (!Material)
 	//	{
@@ -561,7 +567,7 @@ void AMuJoCoSimulation::SetMeshColor(UStaticMeshComponent *StaticMeshComponent, 
 
 	//	StaticMeshComponent->SetMaterial(0, Material);
 
-	// Create dynamic material instance
+	// 创建动态材质实例
 	UMaterialInterface *BaseMaterial = StaticMeshComponent->GetMaterial(0);
 	if (!BaseMaterial)
 		return;

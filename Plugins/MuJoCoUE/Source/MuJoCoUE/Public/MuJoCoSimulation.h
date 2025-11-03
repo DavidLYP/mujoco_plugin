@@ -8,12 +8,13 @@
 
 #include "GameFramework/Actor.h"
 #include "ProceduralMeshComponent.h"
+#include "Runtime/Engine/Classes/Components/StaticMeshComponent.h"
 // #include "Components/InstancedStaticMeshComponent.h"
 #include "MuJoCoSimulation.generated.h"
 
 /**
  * @struct BodyInfo
- * @brief Contains information about a body extracted form the MuJoCo Model and Data.
+ * @brief 包含从 MuJoCo 模型和数据中提取的有关刚体的信息。
  *
  * @property std::string name - 刚体名称。
  * @property int parent_id - 父刚体的 ID
@@ -99,64 +100,62 @@ struct ModelInfo
 };
 
 /**
- * @brief Actor class that interfaces with MuJoCo physics simulation in Unreal Engine.
+ * @brief 与引擎中的 MuJoCo 物理模拟交互的 Actor 类。
  *
- * This class provides functionality to load, simulate, and visualize MuJoCo physics models
- * within Unreal Engine. It handles the conversion between MuJoCo physics representation and
- * Unreal Engine's visual components, allowing for real-time physics simulation and visualization.
+ * 该类提供在虚幻引擎中加载、模拟和可视化 MuJoCo 物理模型的功能。
+ * 它负责 MuJoCo 物理表示与引擎视觉组件之间的转换，从而实现实时物理模拟和可视化。
  *
- * The simulation can be controlled via Blueprint functions to start, pause, reset, and step through
- * the physics simulation. It also maps MuJoCo bodies and geometries to Unreal Engine components.
+ * 该模拟可通过蓝图函数进行控制，实现物理模拟的启动、暂停、重置和单步执行。
+ * 它还能将 MuJoCo 的物体和几何体映射到引擎组件。
  *
- * @note Requires the MuJoCo physics library to be properly integrated with the project.
+ * @note 需要将 MuJoCo 物理库正确集成到项目中。
  */
 /**
  * @class AMuJoCoSimulation
- * @brief Actor for MuJoCo physics simulation integration within Unreal Engine
+ * @brief 用于在引擎中集成 MuJoCo 物理模拟的 Actor
  *
- * This class provides functionality to load, visualize, and simulate MuJoCo physics models.
- * It handles the conversion between MuJoCo's physics representation and Unreal Engine's
- * visual components, allowing for real-time physics simulation and visualization.
+ * 该类提供加载、可视化和模拟 MuJoCo 物理模型的功能。
+ * 它负责 MuJoCo 的物理表示与虚幻引擎的视觉组件之间的转换，从而实现实时物理模拟和可视化。
  */
 
-// Protected variables
-/** @brief MuJoCo simulation data */
+// Protected 变量
+/** @brief MuJoCo 仿真数据 */
 // mjData* mData;
 
-/** @brief MuJoCo model */
+/** @brief MuJoCo 模型 */
 // mjModel* mModel;
 
-/** @brief Current model information */
+/** @brief 当前模型信息 */
 // ModelInfo _info;
 
-/** @brief Initial model information */
+/** @brief 初始化模型信息 */
 // ModelInfo _infoStart;
 
-/** @brief Flag indicating if simulation is currently running */
+/** @brief 指示模拟当前是否正在运行的标志 */
 // bool bSimulationRunning=false;
 
-// Public properties
-/** @brief Maps MuJoCo body IDs to scene components */
+// Public 属性
+/** @brief 将 MuJoCo 刚体 ID 映射到场景组件 */
 // UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MuJoCo")
 // TMap<int,USceneComponent*> BodyMap;
 
-/** @brief Maps MuJoCo geometry IDs to static mesh components */
+/** @brief 将 MuJoCo 几何体 ID 映射到静态网格组件 */
 // UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MuJoCo")
 // TMap<int,UStaticMeshComponent*> GeomMap1;
 
-/** @brief Collection of all procedural meshes created for the simulation */
+/** @brief 模拟过程中创建的所有程序化网格的集合 */
 // UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MuJoCo")
 // TArray<UProceduralMeshComponent*> ProceduralMeshes;
 
-/** @brief Path to the MuJoCo XML model file */
+/** @brief MuJoCo XML 模型文件的路径 */
 // UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MuJoCo")
 // FString XmlSourcePath;
 
-/** @brief Collection of available static meshes for geometry visualization */
+/** @brief 用于几何体可视化的可用静态网格集合 */
 // UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MuJoCo")
 // TMap<int, UStaticMesh*> MeshAssets;
 
-/** @brief Default mesh to use when specific meshes are not provided */
+/** @brief 当未提供特定网格时使用的默认网格 */
 // UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MuJoCo")
 // UStaticMesh* defaultMesh;
 UCLASS()
@@ -165,6 +164,7 @@ class MUJOCOUE_API AMuJoCoSimulation : public AActor
 	GENERATED_BODY()
 
 public:
+	// 为参与者属性设置默认值
 	AMuJoCoSimulation();
 
 protected:
@@ -195,79 +195,79 @@ public:
 	UStaticMesh *defaultMesh;
 
 protected:
+	// 当游戏开始或该参与者生成时调用
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	/**
-	 * Simulate MuJoCo physics for a given time step.
-	 * Advances the MuJoCo physics simulation by the specified delta time.
+	* 模拟 MuJoCo 物理过程，时间步长为指定值。
+	* 将 MuJoCo 物理模拟推进指定的时间增量。
 	 *
-	 * @param DeltaTime The time step in seconds to advance the simulation
+	 * @param DeltaTime 模拟推进的时间步长（以秒为单位）
 	 */
 	void SimulateMuJoCo(float DeltaTime);
 
 	/**
-	 * @brief Extracts current state information from the MuJoCo simulation
+	 * @brief 从 MuJoCo 仿真中提取当前状态信息
 	 *
-	 * This function populates the provided ModelInfo structure with the current
-	 * body and geometry data from the active MuJoCo simulation, including positions,
-	 * orientations, and other relevant properties.
+	 * 该函数使用来自活动的 MuJoCo 仿真的当前物体和几何数据
+	 * （包括位置、朝向和其他相关属性）填充提供的 ModelInfo 结构。
 	 *
-	 * @param modelInfo Reference to a ModelInfo structure to be filled with current simulation state
+	 * @param modelInfo 指向 ModelInfo 结构，该结构将填充当前仿真状态
 	 */
 	void ExtractCurrentState(ModelInfo &modelInfo);
 
 	/**
-	 * @brief Updates the visual representation to match the current simulation state
+	 * @brief 更新视觉表示以匹配当前仿真状态
 	 *
-	 * This function takes the current model info containing body and geometry data from
-	 * the MuJoCo simulation and updates the corresponding Unreal Engine components to
-	 * reflect the current state. It updates positions, rotations, and other visual properties
-	 * of bodies and geometries in the scene.
+	 * 此函数从 MuJoCo 仿真中获取包含刚体和几何体数据的当前模型信息，
+	 * 并更新相应的引擎组件以反映当前状态。
+	 * 它会更新场景中物体和几何体的位置、旋转和其他视觉属性。
 	 *
-	 * @param Info Reference to a ModelInfo structure containing the current simulation state
+	 * @param Info 指向包含当前仿真状态的 ModelInfo 结构
 	 */
 	void UpdateSimulationView(const ModelInfo &Info);
 
 	/**
-	 * @brief Generates mesh components for all geometries in the model
+	 * @brief 为模型中的所有几何体生成网格组件
 	 *
-	 * This function creates and initializes appropriate mesh components (either static or procedural)
-	 * for each geometry in the provided ModelInfo. It handles different geometry types from MuJoCo
-	 * (spheres, capsules, boxes, etc.) and creates corresponding visual representations in Unreal Engine.
+	 * 该函数为提供的 ModelInfo 中的每个几何体创建并初始化相应的网格组件（静态或程序化）。
+	 * 它能够处理来自 MuJoCo 的不同几何体类型（球体、胶囊体、立方体等），
+	 * 并在虚幻引擎中创建相应的视觉表示。
 	 *
-	 * @param modelInfo Reference to the ModelInfo structure containing geometry information
+	 * @param modelInfo 指向包含几何体信息的 ModelInfo 结构
 	 */
 	void GenerateMeshes(ModelInfo &modelInfo);
 
 	/**
-	 * @brief Converts custom MuJoCo mesh geometries to procedural meshes in Unreal Engine
+	 * @brief 将自定义的 MuJoCo 网格几何体转换为引擎中的程序化网格
 	 *
-	 * This function extracts mesh data from the MuJoCo model for geometries that are not basic shapes
-	 * (like spheres, boxes, etc.) and creates corresponding procedural mesh components in Unreal Engine.
-	 * It reads vertex positions, normals, face indices, and other mesh properties from the MuJoCo model
-	 * and creates equivalent mesh representations that can be rendered in the Unreal Engine scene.
+	 * 此函数从 MuJoCo 模型中提取非基本形状（例如球体、立方体等）的几何体的网格数据，
+	 * 并在引擎中创建相应的程序化网格组件。
+	 * 它从 MuJoCo 模型中读取顶点位置、法线、面索引和其他网格属性，
+	 * 并创建可在引擎场景中渲染的等效网格表示。
 	 *
-	 * @param mjModel Pointer to the MuJoCo model containing the mesh data to extract
-	 * @param  UObject* Outer Reference to owner of the procedural mesh components
+	 * @param mjModel 指向包含待提取网格数据的 MuJoCo 模型的指针
+	 * @param  UObject* Outer 程序网格组件的所有者指针
 	 */
 	void ConvertMuJoCoModelToProceduralMeshes(const mjModel *mjModel, UObject *Outer);
 
 	/**
-	 * Sets the color of a static mesh component.
+	 * 设置静态网格组件的颜色。
 	 *
-	 * @param StaticMeshComponent The static mesh component to update
-	 * @param Color The new linear color to apply to the mesh
+	 * @param StaticMeshComponent 要更新的静态网格组件
+	 * @param Color 要应用于网格的新线性颜色
 	 */
 	void SetMeshColor(UStaticMeshComponent *StaticMeshComponent, FLinearColor Color);
 
 	/**
-	 * used for Debugging toprintout some properties
+	 * used for 调试以打印一些属性
 	 **/
 
 	void LogInfo();
 
 public:
+	// 每一帧都调用
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable, Category = "MuJoCo")
