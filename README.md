@@ -1,10 +1,10 @@
 # Mujoco 插件
 
-该插件将 Mujoco 物理引擎与引擎集成在一起，使您可以将 Mujoco XML 文件直接加载到引擎中并运行高级物理模拟。
+该插件将 Mujoco 物理引擎与[引擎](https://github.com/OpenHUTB/engine)集成在一起，使您可以将 Mujoco XML 文件直接加载到引擎中并运行高级物理模拟。
 
 ## 特性
 
-- 将 Mujoco XML 文件加载到虚幻引擎中
+- 将 Mujoco XML 文件加载到引擎中
 - 运行Mujoco模拟并显示实时结果
 - 支持非主要 MuJoCo 形状的程序化网格生成
 - 从 MuJoCo 模型导入对象的颜色
@@ -12,17 +12,18 @@
 
 ## 演示
 
+**具身人**：
+
+![Simulation Demo](./docs/img/humanoid100.gif)
+
+**摆锤**：
+
 ![](./docs/img/pendulum.gif)
 
-![Simulation Demo](https://cdn.loom.com/sessions/thumbnails/ec26c892b5014a03afb7d016b2d4b4d5-88ba2fce00140e4d-full-play.gif)
-
-![Simulation Demo 2](https://cdn.loom.com/sessions/thumbnails/c750fc543f3548208ad88d14b0447251-beb5032d0c1cdf27-full-play.gif)
-
-![Simulation Demo 3](https://cdn.loom.com/sessions/thumbnails/81d84c9a8565465199aae22d4d5e627c-47d9ea28f3266022-full-play.gif)
 
 ## 安装
 
-1. 克隆此存储库到您的虚幻引擎项目的插件`Plugins`文件夹
+1. 克隆此存储库到您的引擎项目的插件`Plugins`文件夹
 2. 重新构建您的项目
 3. 在项目设置中启用 Mujoco 插件
 
@@ -32,12 +33,10 @@
 ### 基本设置
 
 1. 在您的关卡中放置一个`MuJoCoSimulation`参与者
-2. 在参与者属性中设置 XML 文件路径，比如人形机器人`../Plugins/mujoco_plugin/Content/model/humanoid/humanoid.xml`、摆锤：
-`../Plugins/mujoco_plugin/Content/model/pendulum.xml`
-
-在[MuJoCoSimulation.cpp](https://github.com/OpenHUTB/mujoco_plugin/blob/main/Plugins/MuJoCoUE/Source/MuJoCoUE/Private/MuJoCoSimulation.cpp)中先打开生成默认纹理`defaultMesh`的注释运行，然后再注释生成默认纹理运行，拖入场景的 MuJoCoSimulation 就会有默认纹理(Default Mesh)。
-
-3. 开始播放模式以查看模拟
+2. 在参与者属性中设置 XML 文件路径，比如具身人`mujoco/humanoid/humanoid100.xml`、无人车`mujoco/car/car.xml`、摆锤：
+`mujoco/pendulum.xml`。
+3. 在`Default Mesh`中选择`SM_Plane`。
+4. 开始播放模式以查看模拟
 
 ### 控制
 
@@ -61,3 +60,4 @@
 * [MuJoCo-Unreal-Engine-Plugin](https://github.com/oneclicklabs/MuJoCo-Unreal-Engine-Plugin)
 * [Unreal_Mujoco](https://github.com/miaobeihai/Unreal_Mujoco)
 * [mujoco-unreal-plugin](https://github.com/carTloyal123/mujoco-unreal-plugin)
+* [无人机模型](https://github.com/google-deepmind/mujoco_menagerie) - [Skydio X2](https://github.com/google-deepmind/mujoco_menagerie/tree/main/skydio_x2) 、[Crazyflie 2](https://github.com/google-deepmind/mujoco_menagerie/tree/main/bitcraze_crazyflie_2)
