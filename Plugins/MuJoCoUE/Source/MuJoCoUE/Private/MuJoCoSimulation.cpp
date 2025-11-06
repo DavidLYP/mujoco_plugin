@@ -177,7 +177,7 @@ void AMuJoCoSimulation::GenerateMeshes(ModelInfo &modelInfo)
 		if (!mesh)
 		{
 			// 特殊网格处理（mjGEOM_MESH）
-			if (geomInfo.type == mjGEOM_MESH && mModel->geom_dataid[GeomId] != -1)
+			if (geomInfo.type == mjGEOM_MESH && mModel->geom_dataid[GeomId] != -1)  // 如果几何类型是mujoco中的网格，并且引擎中当前GeomId的geom数据没有
 			{
 				int meshId = mModel->geom_dataid[GeomId];
 				if (meshId >= 0 && meshId < ProceduralMeshes.Num())
@@ -221,9 +221,9 @@ void AMuJoCoSimulation::ExtractCurrentState(ModelInfo &info)
 	{
 		// 从全局坐标（xpos 和 xquat）获取位置数据
 		BodyInfo bodyInfo;
-		std::copy(mData->xpos + 3 * i, mData->xpos + 3 * (i + 1), info.bodies[i].pos);
-		std::copy(mData->xquat + 4 * i, mData->xquat + 4 * (i + 1), info.bodies[i].quat);
-		info.bodies[i].quat2 = FQuat(info.bodies[i].quat[1], info.bodies[i].quat[2], info.bodies[i].quat[3], info.bodies[i].quat[0]);
+		std::copy(mData->xpos + 3 * i, mData->xpos + 3 * (i + 1), info.bodies[i].pos);     // 将mujoco中的位置数据 拷贝到 引擎(info) 中
+		std::copy(mData->xquat + 4 * i, mData->xquat + 4 * (i + 1), info.bodies[i].quat);  // 获取身体的四元素数据
+		info.bodies[i].quat2 = FQuat(info.bodies[i].quat[1], info.bodies[i].quat[2], info.bodies[i].quat[3], info.bodies[i].quat[0]);  // 调整四元素数据顺序
 	}
 
 	// 更新几何体状态
@@ -233,7 +233,7 @@ void AMuJoCoSimulation::ExtractCurrentState(ModelInfo &info)
 		// 将旋转矩阵转换为四元数
 		const mjtNum *mat = mData->geom_xmat + 9 * i;
 		mjtNum quat[4];
-		mju_mat2Quat(quat, mat);
+		mju_mat2Quat(quat, mat);  // 将 3D 旋转矩阵转换为四元数
 
 		geomInfo.quat2 = FQuat(quat[1], quat[2], quat[3], quat[0]);
 	}
@@ -354,8 +354,8 @@ void AMuJoCoSimulation::SimulateMuJoCo(float DeltaTime)
 		return;
 	}
 	double startTime = mData->time;
-	while (mData->time - startTime < DeltaTime)
-		mj_step(mModel, mData);
+	while (mData->time - startTime < DeltaTime)  // 当前步的仿真时间
+		mj_step(mModel, mData);  // 推进仿真，使用控制回调来获取外部力和控制（运行时更新mModel和mData中的数据）
 
 	ModelInfo info;
 	if (!_info.bodies.size())

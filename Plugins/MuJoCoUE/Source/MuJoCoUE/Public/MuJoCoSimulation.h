@@ -171,7 +171,7 @@ public:
 protected:
 	mjData *mData;
 	mjModel *mModel;
-	ModelInfo _info;
+	ModelInfo _info;  // 当前引擎中的身体和几何的模型信息
 	ModelInfo _infoStart;
 	bool bSimulationRunning = false;
 

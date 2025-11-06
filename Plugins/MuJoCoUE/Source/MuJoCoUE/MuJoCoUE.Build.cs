@@ -7,7 +7,9 @@ public class MuJoCoUE : ModuleRules
 {
 	public MuJoCoUE(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+        OptimizeCode = CodeOptimization.Never;
+
+        PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicIncludePaths.AddRange(
 			new string[] {
