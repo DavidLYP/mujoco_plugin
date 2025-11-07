@@ -34,9 +34,8 @@
 
 1. 在您的关卡中放置一个`MuJoCoSimulation`参与者
 2. 在参与者属性中设置 XML 文件路径，比如具身人`mujoco/humanoid/humanoid100.xml`、无人车`mujoco/car/car.xml`、摆锤：
-`mujoco/pendulum.xml`。
-3. 在`Default Mesh`中选择`SM_Plane`。
-4. 开始播放模式以查看模拟
+`mujoco/pendulum.xml`。默认在`Default Mesh`中选择的是`SM_Plane`。
+3. 开始播放模式以查看模拟
 
 ### 控制
 
@@ -61,3 +60,4 @@
 * [Unreal_Mujoco](https://github.com/miaobeihai/Unreal_Mujoco)
 * [mujoco-unreal-plugin](https://github.com/carTloyal123/mujoco-unreal-plugin)
 * [无人机模型](https://github.com/google-deepmind/mujoco_menagerie) - [Skydio X2](https://github.com/google-deepmind/mujoco_menagerie/tree/main/skydio_x2) 、[Crazyflie 2](https://github.com/google-deepmind/mujoco_menagerie/tree/main/bitcraze_crazyflie_2)
+* [Unity 的 Mujoco 插件](./docs/unity.md)
