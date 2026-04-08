@@ -43,7 +43,19 @@ plugins:
 extra:
   generator: false
 
-copyright: OpenHUTB 版权所有 &copy; 2026
+# plugins:
+#   - mkdocs-simple-hooks:
+#       hooks:
+#         on_pre_build: "docs.hooks:on_config"
+
+# https://github.com/squidfunk/mkdocs-material/discussions/4969
+# https://www.mkdocs.org/user-guide/configuration/#hooks
+# （已废弃，直接用 hooks 标签）：https://pypi.org/project/mkdocs-simple-hooks/
+
+hooks:
+  - hooks.py
+
+copyright: OpenHUTB 版权所有 &copy; {year}
 
 nav:
 - 首页: 'index.md'
