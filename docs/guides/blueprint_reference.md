@@ -1,16 +1,16 @@
-# Scripting with Blueprints & C++
+# 使用蓝图和 C++ 进行脚本编写
 
-Every MuJoCo component in Unreal Robotics Lab is a regular Unreal component. Articulations are actors. You interact with them the same way you would with any other actor or component — get references, call functions, bind events. No need to touch MuJoCo directly unless you want to.
+Unreal Robotics Lab 中的每个 MuJoCo 组件都是普通的虚幻引擎组件。关节是 Actor。您可以像操作其他 Actor 或组件一样与它们交互：获取引用、调用函数、绑定事件。除非您需要，否则无需直接操作 MuJoCo。
 
-For the full class-by-class API listing, see the [auto-generated API Reference](../api/index.md).
+有关完整的类 API 列表，请参阅 [自动生成的 API 参考](../api/index.md) 。
 
 ---
 
-## Getting References
+## 获取参考
 
-An `AMjArticulation` is just an actor. Get a reference any way you normally would:
+`AMjArticulation` 本质上就是一个动作者。获取引用的方式与通常相同：
 
-**Blueprint:** Get All Actors of Class, cast from a hit result, or store a reference variable.
+**蓝图：** 获取所有类的参与者(Actor)、从命中结果进行类型转换，或存储引用变量。
 
 **C++:**
 ```cpp
@@ -18,9 +18,9 @@ AAMjManager* Manager = AAMjManager::GetManager();
 AMjArticulation* Robot = Manager->GetArticulation("MyRobot");
 ```
 
-From the manager you can look up articulations by name or get all of them:
+从管理器中，您可以按名称查找关节，或获取所有关节：
 
-**Blueprint:** **Get Manager** → **Get Articulation** (name) / **Get All Articulations**
+**蓝图：** **获取管理器** → **获取关节** (名称) / **获取所有关节**
 
 **C++:**
 ```cpp
@@ -29,26 +29,26 @@ TArray<AMjArticulation*> All = Manager->GetAllArticulations();
 
 ---
 
-## Working with Components
+## 使用组件
 
-Once you have an articulation, its MuJoCo components are just child components. Access them by name or as arrays:
+一旦你创建了一个关节，它的 MuJoCo 组件就只是子组件。你可以按名称或数组访问它们：
 
-**Blueprint:** **Get Actuator** (name), **Get Joint** (name), **Get Sensor** (name) — or **Get Actuators**, **Get Joints**, **Get Sensors**, **Get Bodies** for arrays. You can also drag directly from the component tree in your Blueprint.
+**蓝图：** **获取执行器** (名称), **获取关节** (名称), **获取传感器** (名称) — 或者对于数组 **获取执行器**, **获取关节**, **获取传感器**, **获取刚体**。你也可以直接从蓝图中的组件树拖拽组件。
 
 **C++:**
 ```cpp
 UMjActuator* Act = Robot->GetActuator("shoulder");
 TArray<UMjJoint*> Joints = Robot->GetJoints();
-UMjBody* Body = Robot->GetBodyByMjId(3);  // by compiled ID
+UMjBody* Body = Robot->GetBodyByMjId(3);  // 按编译 ID
 ```
 
 ---
 
-## Controlling Actuators
+## 控制执行器
 
-**Blueprint:** **Set Actuator Control** (Name, Value) on the articulation. Wire **Get Game Time in Seconds** → **Sin** → **Set Actuator Control** into Event Tick for a simple sine wave.
+**蓝图：** 在关节上**设置执行器控制** (名称, 值)。 使用 Wire **获取游戏时间（以秒为单位）** → **正弦** → 将**执行器控制**设置为事件节拍，即可得到一个简单的正弦波。 
 
-Use **Get Actuator Range** to get a `Vector2D` (min, max) for clamping.
+使用**获取执行器范围(Get Actuator Range)**获取 `Vector2D`（最小值，最大值）以限制范围。
 
 **C++:**
 ```cpp
@@ -58,11 +58,11 @@ FVector2D Range = Robot->GetActuatorRange("shoulder");
 
 ---
 
-## Reading Sensors
+## 读取传感器
 
-**Blueprint:**
+**蓝图：**
 
-- **Get Sensor Scalar** (name) → Float — for 1D sensors (touch, joint pos, clock)
+- **获取传感器标量(Get Sensor Scalar)** (名称) → Float — 适用于 1D 传感器 (触摸, 关节位置, 时钟)
 - **Get Sensor Reading** (name) → Array of Float — for vector sensors (force, accelerometer)
 - **Get Joint Angle** (name) → Float — shortcut for joint position
 
