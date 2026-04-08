@@ -16,7 +16,7 @@
 2. 构建第三方依赖项（一次）：
    ```bash
    cd UnrealRoboticsLab/third_party
-   # Run third_party/build_all.ps1
+   # 运行 third_party/build_all.ps1
    ```
    Windows 的预编译二进制文件包含在 `third_party/install/`（MuJoCo、libzmq、CoACD）中。
 3. 在虚幻引擎中打开你的 `.uproject` 文件 -- 插件会自动加载。
@@ -60,35 +60,35 @@
 
 1. `cd` 进入 `urlab_bridge/`.
 2. 安装：`uv sync` (或者 `pip install -e .`).
-3. Run a policy: `uv run src/run_policy.py --policy unitree_12dof`
-4. Or use the GUI: `uv run src/urlab_policy/policy_gui.py`
-5. Select your articulation and policy, click Start.
+3. 运行策略：`uv run src/run_policy.py --policy unitree_12dof`
+4. 或者使用图形用户界面：`uv run src/urlab_policy/policy_gui.py`
+5. 选择您的关节和策略，点击开始。
 
-### From Blueprint
+### 从蓝图
 
 ```cpp
-// Set actuator control value
+// 设置执行器控制值
 MyArticulation->SetActuatorControl("left_hip", 0.5f);
 
-// Read joint state
+// 读取关节状态
 float Angle = MyArticulation->GetJointAngle("left_knee");
 
-// Read sensor data
+// 读取传感器数据
 float Touch = MyArticulation->GetSensorScalar("foot_contact");
 TArray<float> Force = MyArticulation->GetSensorReading("wrist_force");
 ```
 
-All functions are `BlueprintCallable`.
+所有的功能都是可调用的蓝图`BlueprintCallable`.
 
-## Debug Visualization
+## 调式可视化
 
-See [Hotkeys](guides/blueprint_reference.md#hotkeys) for keyboard shortcuts.
+请参阅 [快捷键](guides/blueprint_reference.md#hotkeys) 了解键盘快捷键。
 
-## Next Steps
+## 后续步骤
 
-- [features.md](features.md) -- complete feature reference
-- [MJCF Import](guides/mujoco_import.md) -- import pipeline details
-- [Blueprint Reference](guides/blueprint_reference.md) -- all Blueprint-callable functions and hotkeys
-- [ZMQ Networking](guides/zmq_networking.md) -- protocol, topics, and Python examples
-- [Policy Bridge](guides/policy_bridge.md) -- RL policy deployment
-- [Developer Tools](guides/developer_tools.md) -- schema tracking, debug XML, build/test skills
+- [features.md](features.md) -- 完整功能参考
+- [MJCF 导入](guides/mujoco_import.md) -- 导入管道详情
+- [蓝图参考](guides/blueprint_reference.md) -- 所有蓝图可调用函数和快捷键
+- [ZMQ 网络](guides/zmq_networking.md) -- 协议、主题和 Python 示例
+- [策略桥接](guides/policy_bridge.md) -- 强化学习策略部署
+- [开发者工具](guides/developer_tools.md) -- 模式跟踪、 XML 调试、构建/测试技能
