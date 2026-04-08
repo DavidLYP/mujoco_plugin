@@ -1,37 +1,37 @@
-# MJCF Import
+# MJCF 导入
 
-Unreal Robotics Lab can import standard MuJoCo XML (MJCF) files and reconstruct the full model hierarchy as Unreal components. Grab an `.xml` from the MuJoCo Menagerie or your own projects and drag it straight into the Content Browser.
-
----
-
-## Importing
-
-1. Drag your `.xml` file into the Unreal **Content Browser**.
-2. `UMujocoImportFactory` automatically runs `Scripts/clean_meshes.py` as a subprocess:
-   - Parses the XML to find all referenced mesh assets
-   - Detects GLB stem conflicts (e.g., `link1.obj` and `link1.stl` both producing `link1.glb`) and renames them
-   - Converts meshes to GLB (preserving UVs, stripping embedded textures)
-   - Produces a `_ue.xml` with updated mesh references
-   - Graceful fallback: if Python or trimesh is missing, the raw XML is used instead
-3. The factory creates an `AMjArticulation` Blueprint via four parsing passes:
-   - **Pass 1:** Assets (meshes with scales, textures with file paths, materials with RGBA/texture refs)
-   - **Pass 2:** Defaults (class hierarchy as `UMjDefault` components)
-   - **Pass 3:** Worldbody (recursive body/geom/joint/site hierarchy)
-   - **Pass 4:** Actuators, sensors, tendons, equalities, keyframes, contact pairs/excludes
-4. Place the Blueprint in your level. It is ready to simulate.
+Unreal Robotics Lab 可以导入标准的 MuJoCo XML (MJCF) 文件，并将完整的模型层级结构重建为 Unreal 组件。您可以从 MuJoCo Menagerie 或您自己的项目中获取 `.xml` 模型，然后将其直接拖入内容浏览器。
 
 ---
 
-## What Gets Created
+## 导入
 
-| MJCF Element | Unreal Component |
+1. 将  `.xml` 文件拖入虚幻 **内容浏览器(Content Browser)** 。
+2. `UMujocoImportFactory` 自动作为子进程运行 `Scripts/clean_meshes.py`：
+   - 解析 XML 以查找所有引用的网格资产
+   - 检测 GLB stem 冲突（例如，`link1.obj` 和 `link1.stl` 两者都产生 `link1.glb`），并重命名它们。
+   - 将网格转换为 GLB 格式（保留 UV，去除嵌入纹理）
+   - 生成带有更新网格参考的`_ue.xml`
+   - 优雅回退方案：如果缺少 Python 或 trimesh，则使用原始 XML 代替。
+3. 工厂通过四次解析过程创建 `AMjArticulation` 蓝图：
+   - **第一阶段：** 资产（带缩放的网格、带文件路径的纹理、带 RGBA/纹理引用的材质）
+   - **第二阶段：** 默认值（类层次结构作为 `UMjDefault` 组件）
+   - **第三阶段：** Worldbody (递归的刚体(body)/几何(geom)/关节(joint)/位点(site)层次结构)
+   - **第四阶段：** 执行器、传感器、肌腱、equalities、关键帧、接触 对/排除
+4. 将蓝图放置在关卡中，即可进行模拟。
+
+---
+
+## 创建的内容
+
+| MJCF 元件 | 虚幻组件 |
 |-------------|-----------------|
-| `<body>` | `UMjBody` (recursive hierarchy preserved) |
+| `<body>` | `UMjBody` (保留递归层次结构) |
 | `<joint>` | `UMjHingeJoint`, `UMjSlideJoint`, `UMjBallJoint`, `UMjFreeJoint` |
-| `<geom>` | `UMjGeom` / primitive subclass |
+| `<geom>` | `UMjGeom` / 原始子类 |
 | `<site>` | `UMjSite` |
 | `<actuator>` | `UMjMotorActuator`, `UMjPositionActuator`, etc. |
-| `<sensor>` | `UMjTouchSensor`, `UMjGyro`, etc. (30+ types) |
+| `<sensor>` | `UMjTouchSensor`, `UMjGyro`, 等 (30 多种类型) |
 | `<tendon>` | `UMjTendon` |
 | `<equality>` | `UMjEquality` |
 | `<keyframe>` | `UMjKeyframe` |
@@ -40,73 +40,76 @@ Unreal Robotics Lab can import standard MuJoCo XML (MJCF) files and reconstruct 
 
 ---
 
-## Compiler Settings
+## 编译器设置
 
-The importer respects the MJCF `<compiler>` element:
+导入器关于 MJCF `<compiler>` 元素：
 
-| Attribute | Effect |
+| 属性 | 效果 |
 |-----------|--------|
-| `angle="degree"` / `"radian"` | How joint limits and positions are interpreted |
-| `autolimits="true"` | Enables limits automatically when `range` is set |
-| `eulerseq` | Euler rotation sequence for body orientations |
+| `angle="degree"` / `"radian"` | 如何解读关节的限制和位置 |
+| `autolimits="true"` | 当 `range` 设置后自动启动限制 |
+| `eulerseq` | 用于调整物体姿态的欧拉旋转序列 |
 
 ---
 
-## How Defaults Work
+## 默认值如何工作
 
-`<default>` blocks in MuJoCo XML define shared properties that child elements inherit by class name. When imported, these become `UMjDefault` components in the articulation's component tree.
+MuJoCo XML 中的 `<default>` 块定义了子元素通过类名继承的共享属性。导入后，这些块会成为 `UMjDefault` 连接组件树中的组件。
 
-These are **not** just for reference — they are live components. The plugin uses them when converting the Blueprint *back* into MuJoCo's internal representation during compilation. Each component checks its assigned `ClassName` against the default chain, and MuJoCo applies the inheritance at spec compilation time, exactly as it would with raw XML.
+这些组件**并非**仅供参考，而是实际存在的组件。插件在编译过程中会将它们用于将蓝图**转换回** MuJoCo 的内部表示形式。每个组件都会检查其分配的属性 `ClassName` 是否与默认链匹配，MuJoCo 会在规范编译时应用继承关系，就像处理原始 XML 一样。
 
-This means:
+这意味着：
 
-- Editing a `UMjDefault` component affects all components that reference that default class.
-- The default hierarchy (nested defaults) is preserved and functional.
-- If you remove a default, components that relied on it will fall back to their own explicit property values.
+- 编辑某个 `UMjDefault` 组件会影响所有引用该默认类的组件。
+- 默认层次结构（嵌套默认值）得以保留并正常运行。
+- 如果移除默认值，则依赖该默认值的组件将回退到它们自己的显式属性值。
 
 ---
 
-## FromTo Resolution
+## FromTo 解析
 
-Geoms defined with the `fromto` attribute are resolved to explicit `pos`, `quat`, and `size` at import time. The resolution is type-aware:
+使用该 `fromto` 属性定义的几何体在导入时会解析为显式的 `pos`、`quat`和 `size`。解析过程会考虑类型：
 
-| Geom Type | Size Mapping |
+
+| 几何类型 | 尺寸映射 |
 |-----------|-------------|
-| Capsule / Cylinder | `size[1]` = half-length along the segment |
-| Box / Ellipsoid | `size[2]` = half-length along the segment |
+| 胶囊(Capsule) / 圆柱(Cylinder) | `size[1]` = 沿线段长度的一半 |
+| 方框(Box) / 椭圆球(Ellipsoid) | `size[2]` = 沿线段长度的一半 |
 
-After import the component stores the resolved transform — `fromto` is not preserved.
-
----
-
-## Materials & Textures
-
-The importer creates shared Unreal material instances keyed by XML `<material>` name. All geoms referencing the same material name share one instance (e.g., every geom with `material="white"` uses `MI_white`). Textures referenced by `<texture>` elements are applied to the corresponding material instance.
+导入后，组件存储的是已解析的变换，`fromto` 而不是已解析的变换。
 
 ---
 
-## Mesh Assets
+## 材质与纹理
 
-The importer looks for mesh files relative to the XML file's directory. Found meshes are copied to a `/Meshes/` subfolder under the import target to avoid texture name collisions, then registered in MuJoCo's VFS during compilation.
+导入器会创建以 XML `<material>` 名称为键的共享 Unreal 材质实例。所有引用相同材质名称的几何体共享同一个实例（例如，所有 `material="white"` 使用 ` <material_name>` 的几何体都使用 `MI_white`）。元素引用的纹理 `<texture>` 会应用到相应的材质实例上。
 
-**Format priority:** FBX > GLB > OBJ. The importer tries multiple paths via `ImportSingleMesh()`: GLB (via Interchange), then raw OBJ/STL (via FBX factory), then FBX fallback. If all fail, the geom is created without a visual mesh but still exists as a collision primitive. A warning is logged and compilation still succeeds.
+---
 
-**Auto mesh preparation:** The `clean_meshes_trimesh.py` script runs automatically during import (see [Importing](#importing) above). You can also run it manually:
+## 网格资产
+
+导入程序会查找 XML 文件所在目录下的网格文件。 到的网格文件会被复制到导入目标目录下的 `/Meshes/` 子文件夹中，以避免纹理名称冲突，然后在编译期间注册到 MuJoCo 的 VFS 中。
+
+**格式优先级：** FBX > GLB > OBJ。导入器会尝试使用 `ImportSingleMesh()` 函数导入多种路径：首先是 GLB（通过 Interchange），然后是原始 OBJ/STL（通过 FBX 工厂），最后是 FBX 回退。如果所有路径都失败，则会创建不带可视网格的几何体，但该几何体仍作为碰撞图元存在。此时会记录一条警告信息，但编译仍然会成功。
+
+**自动网格准备：** `clean_meshes_trimesh.py` 脚本会在导入过程中自动运行（参见上文 [导入](#importing) 部分）。您也可以手动运行它：
 
 ```bash
 python Scripts/clean_meshes.py path/to/robot.xml
 ```
 
-This produces a `_ue.xml` file with updated mesh references that you can drag into Unreal instead of the original XML.
+这将生成一个包含更新后的网格引用的 `_ue.xml` 文件，您可以将其拖入 Unreal 中，而不是使用原始 XML 文件。
 
 ---
 
-## Debugging Import Issues
+## 调试导入问题
 
-Enable `bSaveDebugXml` on the `AAMjManager` to save `scene_compiled.xml` and `scene_compiled.mjb` to `Saved/URLab/` after compilation. Diff the original MJCF against the compiled XML to identify import/export mismatches (missing elements, wrong property values, broken default inheritance). The compiled XML can also be loaded into native MuJoCo for verification. See [Developer Tools](developer_tools.md) for more.
+启用 `AAMjManager` 的 `bSaveDebugXml` 功能，即可在编译后将 `scene_compiled.xml` 和 `scene_compiled.mjb` 保存到 `Saved/URLab/` 目录。对比原始 MJCF 和编译后的 XML 文件，找出导入/导出不匹配之处（例如缺少元素、属性值错误、默认继承关系损坏）。编译后的 XML 文件也可以加载到原生 MuJoCo 中进行验证。更多信息请参阅 [开发者工具](developer_tools.md) 。
 
-## After Import
 
-The imported articulation is a normal Unreal actor. You can rearrange components, add sensors or cameras, override properties, or save it as a reusable Blueprint. The XML is only read during import — after that, the Unreal components are the source of truth.
+## 导入后
 
-For full details on the import pipeline internals, see [Architecture](../architecture.md#import-pipeline).
+导入的关节是一个普通的虚幻引擎动作者。您可以重新排列组件、添加传感器或摄像机、覆盖属性，或将其保存为可重用的蓝图。XML 仅在导入期间读取——之后，虚幻引擎组件才是最终的数据源。
+
+有关导入流程内部结构的完整详细信息，请参阅 [架构](../architecture.md#import-pipeline) 部分。
+
