@@ -62,7 +62,7 @@ ZMQ回调直接在物理线程上运行:
 铰链节体过滤： 在多机器人场景中，使用铰链名称前缀进行订阅（例如 `sub.setsockopt_string(zmq.SUBSCRIBE, "Robot_A/")`），即可仅接收对应机器人的数据。
 
 ### 控制源
-`EControlSource `用于确定执行器是响应 ZMQ 指令还是仪表板输入。可在管理器上进行全局设置，也可按单个关节体分别设置：
+`EControlSource `用于确定执行器是响应 ZMQ 指令还是仪表板输入。可在管理器上进行全局设置，也可按单个铰链体分别设置：
 
 ```
 Manager->SetControlSource(EControlSource::ZMQ);
