@@ -26,32 +26,32 @@ Unreal Robotics Lab 使用 [ZeroMQ](https://zeromq.org) 进行所有外部通信
 
 所有虚幻引擎端的套接字都使用 `zmq_bind()` 函数。外部客户端使用 `zmq_connect()` 函数。
 
-### 主题
+### 时间顺序
 
 ZMQ回调直接在物理线程上运行:
 
-1. **PreStep（前置步骤）** — 读取传入指令→ 写入至UZmqControlSubscriber的mjData.ctrl
+1. **PreStep（前置步骤）** — 读取传入指令→ 写入至`UZmqControlSubscriber`的`mjData.ctrl`
 2. **mj_step()** — 执行物理步骤（仿真推进）
-3. **PostStep（后置步骤）** — 读取数据 → 通过  UZmqSensorBroadcaster  发布  mjData
+3. **PostStep（后置步骤）** — `UZmqSensorBroadcaster` 读取 `mjData` →发布
 
 指令与响应之间存在单步延迟。相机画面在独立的后台线程中运行，因此不会阻塞物理循环。
 
-### 主题（传感器广播）
-所有消息均为多部分组成：主题字符串 + 二进制有效载荷。主题以运动链 / 关节实体名称作为前缀。
+### 话题（传感器广播）
+所有消息均为多部分组成：主题字符串+二进制有效负载。话题以铰链参与者名称作为前缀：
 
-| 主题模式 | 负载 | 数据 |
+| 话题模式 | 有效负载 | 数据 |
 |---------------|---------|--------|
-| `{Name}/joint/{JointName}` | `int32 id, float pos, float vel, float acc` (16 bytes) | `UMjJoint::BuildBinaryPayload` |
-| `{Name}/sensor/{SensorName}` | `int32 id, float[] values` (4 + 4*dim bytes) | `UMjSensor::BuildBinaryPayload` |
-| `{Name}/base_state/{JointName}` | `7 x float64` (pos xyz + quat wxyz) | `UMjFreeJoint::BuildBinaryPayload` |
-| `{Name}/twist` | `3 x float32`: vx, vy, yaw_rate | TwistController |
-| `{Name}/actions` | `int32` bitmask | TwistController (仅非零时发送) |
+| `{Name}/joint/{JointName}` | `int32 id, float pos, float vel, float acc` (16 bytes) | `UMj关节::构建二进制有效载荷` |
+| `{Name}/sensor/{SensorName}` | `int32 id, float[] values` (4 + 4*dim bytes) | `UMj传感器::构建二进制有效载荷` |
+| `{Name}/base_state/{JointName}` | `7 x float64` (pos xyz + quat wxyz) | `UMj自由关节::构建二进制负载` |
+| `{Name}/twist` | `3 x float32`: vx, vy, yaw_rate | 旋转控制器 |
+| `{Name}/actions` | `int32` bitmask | 扭力控制器 (仅非零时发送) |
 
-### 主题（控制接收）
+### 话题（控制接收）
 
-控制订阅器会对 {Name}/control 和 {Name}/set_gains 进行主题过滤：:
+控制订阅器会对` {Name}/control` 和` {Name}/set_gains` 进行话题过滤：:
 
-| 主题模式  | 负载  |
+| 话题模式  | 有效负载  |
 |---------------|---------|
 | `{Name}/control` | `int32 count`, then `count` x `(int32 actuator_id, float value)` |
 | `{Name}/set_gains` | JSON: `{"joint_name": {"kp": float, "kv": float, "torque_limit": float}, ...}` |
@@ -59,10 +59,10 @@ ZMQ回调直接在物理线程上运行:
 ### 信息广播（端口 5557）
 控制订阅器会通过信息端点周期性发布 JSON 格式的发现消息，内容包含执行器名称、ID、取值范围以及相机端点。启动阶段发送频率较高（前 5 秒内每 50 个物理步发送一次），之后改为每 500 个物理步发送一次（约 1 秒）。
 
-多关节体过滤： 在多机器人场景中，使用关节体名称前缀进行订阅（例如 sub.setsockopt_string(zmq.SUBSCRIBE, "Robot_A/")），即可仅接收对应机器人的数据。
+铰链节体过滤： 在多机器人场景中，使用铰链名称前缀进行订阅（例如 `sub.setsockopt_string(zmq.SUBSCRIBE, "Robot_A/")`），即可仅接收对应机器人的数据。
 
 ### 控制源
-EControlSource 用于确定执行器是响应 ZMQ 指令还是仪表板输入。可在管理器上进行全局设置，也可按单个关节体分别设置：
+`EControlSource `用于确定执行器是响应 ZMQ 指令还是仪表板输入。可在管理器上进行全局设置，也可按单个关节体分别设置：
 
 ```
 Manager->SetControlSource(EControlSource::ZMQ);
@@ -70,21 +70,21 @@ Manager->SetControlSource(EControlSource::ZMQ);
 
 ---
 
-## urlab_bridge（ROS 2）
-urlab_bridge（独立的配套仓库，同一个 GitHub 组织）是 Python 端的中间件。它位于插件的 ZMQ 流和任何外部系统（ROS 2、强化策略、自定义脚本）之间：
+## urlab_bridge （ROS 2）
+The **urlab_bridge**（独立的配套仓库，同一个 GitHub 组织）是 Python 端的中间件。它位于插件的 ZMQ 流和任何外部系统（ROS 2、强化策略、自定义脚本）之间：
 
 ```
 Unreal (ZMQ binary) → urlab_bridge → ROS 2 topics
 ```
 
-它订阅ZMQ传感器和相机端点，解包二进制有效载荷，并发布到标准ROS 2主题（， ， ）。多机器人命名空间自动处理。/joint_states/sensor_data/camera/image_raw
+它同意ZMQ传感器和相机端点，解包二进制有效载荷，并发布到标准ROS 2话题。多机器人命名空间自动处理。`/joint_states/sensor_data/camera/image_raw`
 
 **为什么要单独建立渠道？**
 
-保持Unreal插件免受ROS构建依赖（如ament、colcon等）
-桥接器纯为Python加+——安装简单，修改也容易pyzmqrclpy
-不需要ROS的用户根本不用考虑
-需要ROS的用户则获得标准主题界面，无需插件更改
+* 保持Unreal插件免受ROS构建依赖（如ament、colcon等）
+* 桥接器纯为Python加+——安装简单，修改也容易 `pyzmq rclpy`
+* 不需要ROS的用户根本不用考虑
+* 需要ROS的用户则获得标准话题界面，无需插件更改
 
 
 ### 快速测试（无需ROS）
@@ -95,9 +95,9 @@ uv run src/zmq_visualizer.py \
     --camera_endpoint="tcp://127.0.0.1:5558"
 ```
 
-打印实时联合状态，并打开 OpenCV 窗口以显示相机帧
+打印实时关节状态，并打开 OpenCV 窗口以显示相机帧
 
-### ROS 2 转播台
+### ROS 2 rebroadcaster
 
 ```bash
 # Source your ROS 2 environment first (Humble, Jazzy, etc.)
@@ -146,8 +146,8 @@ while True:
 
 ## 故障排除
 
-**没有数据到达**检查终端是否匹配（协议、IP、端口）。所有虚幻端插槽绑定;外部客户端连接。
+**没有数据到达**检查终端是否匹配（协议、IP、端口）。所有虚幻端插槽*绑定*;外部客户端连接。
 
-**控制项不起作用** — 校正`ControlSource` 设置为 `ZMQ`. 注意，控制主题需要订阅筛选器中的尾部空格 (e.g., `"MyRobot/control "`).
+**控制项不起作用** — 校正设置为 。注意，控制话题需要订阅筛选器中的尾部空格（例如，）。`ControlSourceZMQ"MyRobot/control "`
 
 **相机帧空白** — 确保 `bEnableZmqBroadcast = true` 相机组件和模型成功编译
