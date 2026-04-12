@@ -41,11 +41,11 @@ ZMQ回调直接在物理线程上运行:
 
 | 话题模式 | 有效负载 | 数据 |
 |---------------|---------|--------|
-| `{Name}/joint/{JointName}` | `int32 id, float pos, float vel, float acc` (16 bytes) | `UMj关节::构建二进制有效载荷` |
-| `{Name}/sensor/{SensorName}` | `int32 id, float[] values` (4 + 4*dim bytes) | `UMj传感器::构建二进制有效载荷` |
-| `{Name}/base_state/{JointName}` | `7 x float64` (pos xyz + quat wxyz) | `UMj自由关节::构建二进制负载` |
-| `{Name}/twist` | `3 x float32`: vx, vy, yaw_rate | 旋转控制器 |
-| `{Name}/actions` | `int32` bitmask | 扭力控制器 (仅非零时发送) |
+| `{Name}/joint/{JointName}` | `int32 id, float pos, float vel, float acc` (16 bytes) | `UMjJoint::BuildBinaryPayload` |
+| `{Name}/sensor/{SensorName}` | `int32 id, float[] values` (4 + 4*dim bytes) | `UMjSensor::BuildBinaryPayload` |
+| `{Name}/base_state/{JointName}` | `7 x float64` (pos xyz + quat wxyz) | `UMjFreeJoint::BuildBinaryPayload` |
+| `{Name}/twist` | `3 x float32`: vx, vy, yaw_rate | TwistController |
+| `{Name}/actions` | `int32` bitmask | TwistController (仅非零时发送) |
 
 ### 话题（控制接收）
 
@@ -71,7 +71,7 @@ Manager->SetControlSource(EControlSource::ZMQ);
 ---
 
 ## urlab_bridge （ROS 2）
-The **urlab_bridge**（独立的配套仓库，同一个 GitHub 组织）是 Python 端的中间件。它位于插件的 ZMQ 流和任何外部系统（ROS 2、强化策略、自定义脚本）之间：
+**urlab_bridge**（独立的配套仓库，同一个 GitHub 组织）是 Python 端的中间件。它位于插件的 ZMQ 流和任何外部系统（ROS 2、强化策略、自定义脚本）之间：
 
 ```
 Unreal (ZMQ binary) → urlab_bridge → ROS 2 topics
